@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -6,7 +6,7 @@ export const identifyService = async (
   email?: string,
   phoneNumber?: string
 ) => {
-  return await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
 
     //  direct matches
     const initialMatches = await tx.contact.findMany({
@@ -74,9 +74,9 @@ export const identifyService = async (
       }
     }
 
-        // 7️⃣ Check if new info needs new secondary
-    const emailExists = allContacts.some(c => c.email === email);
-    const phoneExists = allContacts.some(c => c.phoneNumber === phoneNumber);
+        // check if new info needs new secondary
+    const emailExists = allContacts.some((c: typeof allContacts[number]) => c.email === email);
+    const phoneExists = allContacts.some((c: typeof allContacts[number]) => c.phoneNumber === phoneNumber);
 
     if (!emailExists || !phoneExists) {
       await tx.contact.create({
@@ -89,7 +89,7 @@ export const identifyService = async (
       });
     }
 
-    // 8️⃣ Fetch updated cluster
+    // Fetch updated 
     const finalContacts = await tx.contact.findMany({
       where: {
         OR: [
@@ -102,11 +102,11 @@ export const identifyService = async (
 
     return {
       primaryContatctId: primary.id,
-      emails: [...new Set(finalContacts.map(c => c.email).filter(Boolean))],
-      phoneNumbers: [...new Set(finalContacts.map(c => c.phoneNumber).filter(Boolean))],
+      emails: [...new Set(finalContacts.map((c:any) => c.email).filter(Boolean))],
+      phoneNumbers: [...new Set(finalContacts.map((c:any) => c.phoneNumber).filter(Boolean))],
       secondaryContactIds: finalContacts
-        .filter(c => c.linkPrecedence === "secondary")
-        .map(c => c.id),
+        .filter((c:any) => c.linkPrecedence === "secondary")
+        .map((c:any) => c.id),
     };
 
     // continue next feature
