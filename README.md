@@ -40,7 +40,7 @@ Identifies and links contacts based on email and phone number.
 {
   "contact": {
     "primaryContactId": 1,
-    "emails": ["doc@bitespeed.com"],
+    "emails": ["isha@biteS.com"],
     "phoneNumbers": ["123456"],
     "secondaryContactIds": [2]
   }
@@ -148,7 +148,7 @@ POST http://localhost:3000/identify
 
 ---
 
-## 🔎 Optional: View Database
+## Optional: View Database
 
 ```bash
 npx prisma studio
