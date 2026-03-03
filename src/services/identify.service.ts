@@ -8,8 +8,8 @@ export const identifyService = async (
 ) => {
   return await prisma.$transaction(async (tx) => {
 
-    // STEP 1: Find direct matches
-    const matches = await tx.contact.findMany({
+    //  direct matches
+    const initialMatches = await tx.contact.findMany({
       where: {
         OR: [
           { email: email || undefined },
@@ -19,8 +19,8 @@ export const identifyService = async (
       orderBy: { createdAt: "asc" },
     });
 
-    // STEP 2: If no matches → create primary
-    if (matches.length === 0) {
+    // no matches = new primary
+    if (initialMatches.length === 0) {
       const newContact = await tx.contact.create({
         data: {
           email,
@@ -37,7 +37,44 @@ export const identifyService = async (
       };
     }
 
-    // Continue logic in next feature
+    //  all related IDs
+    const relatedIds = new Set<number>();
+
+    for (const contact of initialMatches) {
+      relatedIds.add(contact.id);
+      if (contact.linkedId) {
+        relatedIds.add(contact.linkedId);
+      }
+    }
+
+    // full linked cluster
+    const allContacts = await tx.contact.findMany({
+      where: {
+        OR: [
+          { id: { in: Array.from(relatedIds) } },
+          { linkedId: { in: Array.from(relatedIds) } },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    // oldest becomes primary
+    const primary = allContacts[0];
+
+    // others to secondary
+    for (const contact of allContacts) {
+      if (contact.id !== primary.id) {
+        await tx.contact.update({
+          where: { id: contact.id },
+          data: {
+            linkPrecedence: "secondary",
+            linkedId: primary.id,
+          },
+        });
+      }
+    }
+
+    // continue next feature
     return {};
   });
 };
