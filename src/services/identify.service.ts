@@ -74,7 +74,42 @@ export const identifyService = async (
       }
     }
 
+        // 7️⃣ Check if new info needs new secondary
+    const emailExists = allContacts.some(c => c.email === email);
+    const phoneExists = allContacts.some(c => c.phoneNumber === phoneNumber);
+
+    if (!emailExists || !phoneExists) {
+      await tx.contact.create({
+        data: {
+          email,
+          phoneNumber,
+          linkedId: primary.id,
+          linkPrecedence: "secondary",
+        },
+      });
+    }
+
+    // 8️⃣ Fetch updated cluster
+    const finalContacts = await tx.contact.findMany({
+      where: {
+        OR: [
+          { id: primary.id },
+          { linkedId: primary.id },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return {
+      primaryContatctId: primary.id,
+      emails: [...new Set(finalContacts.map(c => c.email).filter(Boolean))],
+      phoneNumbers: [...new Set(finalContacts.map(c => c.phoneNumber).filter(Boolean))],
+      secondaryContactIds: finalContacts
+        .filter(c => c.linkPrecedence === "secondary")
+        .map(c => c.id),
+    };
+
     // continue next feature
-    return {};
+    
   });
 };
